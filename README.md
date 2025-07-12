@@ -1,73 +1,136 @@
-# Welcome to your Lovable project
 
-## Project info
+# CraigeeX WhatsApp ChatGPT Bot
 
-**URL**: https://lovable.dev/projects/522aacd9-6362-4830-b2be-62d6ce940c61
+A complete WhatsApp ChatGPT bot system with intelligent responses, context awareness, and easy deployment.
 
-## How can I edit this code?
+## 🚀 Features
 
-There are several ways of editing your application.
+- **Smart WhatsApp Bot** with ChatGPT integration
+- **Context-Aware Responses** - Analyzes message history for better replies
+- **Owner Recognition** - Prioritizes messages from CraigeeX
+- **Group & Private Chat Support**
+- **Real-time Dashboard** for bot management
+- **Pair Code Authentication** - No QR codes needed
+- **Active/Silent Mode Toggle**
+- **Message History Analysis**
 
-**Use Lovable**
+## 🏗️ Architecture
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/522aacd9-6362-4830-b2be-62d6ce940c61) and start prompting.
+- **Frontend Dashboard**: React + Vite + Tailwind CSS (Vercel)
+- **Backend Bot**: Node.js + Baileys + OpenAI API (Railway)
 
-Changes made via Lovable will be committed automatically to this repo.
+## 📱 Live Demo
 
-**Use your preferred IDE**
+- **Dashboard**: [Your Vercel URL]
+- **Bot Status**: Active on WhatsApp
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🚀 Quick Deploy
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Prerequisites
+- OpenAI API Key ([Get one here](https://platform.openai.com/api-keys))
+- Railway Account ([Sign up](https://railway.app))
+- Vercel Account ([Sign up](https://vercel.com))
 
-Follow these steps:
+### 1. Deploy Backend to Railway First
+```bash
+# Navigate to backend directory
+cd backend
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Deploy to Railway
+railway login
+railway new
+railway up
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Set environment variables in Railway:
+```
+OPENAI_API_KEY=your_openai_key_here
+OWNER_NUMBER=27847826044
+OWNER_NAME=CraigeeX
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+### 2. Deploy Frontend to Vercel
+```bash
+# In project root
+vercel --prod
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+Update the backend URL in the deployed frontend dashboard.
+
+## 🔧 Local Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start frontend
+npm run dev
+
+# Start backend (separate terminal)
+cd backend
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 📋 Environment Variables
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Backend (.env)
+```bash
+OPENAI_API_KEY=your_openai_api_key
+OWNER_NUMBER=27847826044
+OWNER_NAME=CraigeeX
+PORT=3001
+```
 
-**Use GitHub Codespaces**
+### Frontend (optional)
+```bash
+VITE_BACKEND_URL=http://localhost:3001
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🤖 How to Use
 
-## What technologies are used for this project?
+1. **Deploy Backend** to Railway
+2. **Deploy Frontend** to Vercel
+3. **Visit Dashboard** and enter your WhatsApp number
+4. **Get Pair Code** from the dashboard
+5. **Link WhatsApp**: Settings → Linked Devices → Link with Phone Number
+6. **Enter Pair Code** in WhatsApp
+7. **Bot is Live!** - Start chatting
 
-This project is built with:
+## 📁 Project Structure
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```
+├── src/                    # Frontend dashboard
+├── backend/               # WhatsApp bot backend
+├── DEPLOYMENT_GUIDE.md    # Detailed deployment guide
+└── README.md             # This file
+```
 
-## How can I deploy this project?
+## 🛠️ Tech Stack
 
-Simply open [Lovable](https://lovable.dev/projects/522aacd9-6362-4830-b2be-62d6ce940c61) and click on Share -> Publish.
+- **Frontend**: React 18, Vite, Tailwind CSS, Shadcn/UI
+- **Backend**: Node.js, Express, Baileys v6, OpenAI API
+- **Deployment**: Vercel + Railway
+- **Storage**: Local auth session (Railway persistent storage)
 
-## Can I connect a custom domain to my Lovable project?
+## 📞 Support
 
-Yes, you can!
+1. Check the [Deployment Guide](./DEPLOYMENT_GUIDE.md)
+2. Verify all environment variables are set
+3. Check Railway logs: `railway logs`
+4. Ensure OpenAI API has credits
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🔒 Security
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+- API keys stored as environment variables
+- No sensitive data in codebase
+- WhatsApp session encrypted by Baileys
+- CORS configured for dashboard only
+
+## 📄 License
+
+MIT License - Feel free to use and modify!
+
+---
+
+Built with ❤️ by CraigeeX
