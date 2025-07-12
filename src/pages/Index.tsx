@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Bot, MessageCircle, Zap, Moon, Sun, Smartphone, Activity, Users, Clock } from 'lucide-react';
+import { Bot, MessageCircle, Zap, Moon, Sun, Smartphone, Activity, Users, Clock, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,16 +10,22 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 
 const Index = () => {
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [pairCode, setPairCode] = useState('');
-  const [botStatus, setBotStatus] = useState<'offline' | 'connecting' | 'online'>('offline');
+  const [showPairCode, setShowPairCode] = useState(false);
+  const [botStatus, setBotStatus] = useState<'offline' | 'generating' | 'waiting' | 'online'>('offline');
   const [darkMode, setDarkMode] = useState(false);
   const [activeMode, setActiveMode] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
   const [messageCount, setMessageCount] = useState(247);
   const [groupsCount, setGroupsCount] = useState(12);
 
+  // Railway backend URL - update this with your Railway deployment URL
+  const BACKEND_URL = process.env.NODE_ENV === 'production' 
+    ? 'https://your-railway-app.railway.app' 
+    : 'http://localhost:3001';
+
   useEffect(() => {
-    // Apply dark mode to document
     if (darkMode) {
       document.documentElement.classList.add('dark');
     } else {
@@ -27,34 +33,49 @@ const Index = () => {
     }
   }, [darkMode]);
 
-  const handlePairCodeSubmit = async () => {
-    if (!pairCode.trim()) {
+  const handleGeneratePairCode = async () => {
+    if (!phoneNumber.trim()) {
       toast({
         title: "Error",
-        description: "Please enter a valid pair code",
+        description: "Please enter your WhatsApp phone number",
         variant: "destructive"
       });
       return;
     }
 
     setIsConnecting(true);
-    setBotStatus('connecting');
+    setBotStatus('generating');
     
     try {
-      // Simulate API call to Railway backend
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      setBotStatus('online');
-      toast({
-        title: "Success! 🎉",
-        description: "CraigeeX WhatsApp Bot is now online and ready!",
+      const response = await fetch(`${BACKEND_URL}/api/generate-pair`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phoneNumber: phoneNumber.trim() }),
       });
-      setPairCode('');
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setPairCode(data.pairCode);
+        setShowPairCode(true);
+        setBotStatus('waiting');
+        toast({
+          title: "Pair Code Generated! 🎉",
+          description: "Enter this code in WhatsApp to link your account",
+        });
+        
+        // Start polling for connection status
+        pollConnectionStatus();
+      } else {
+        throw new Error(data.error || 'Failed to generate pair code');
+      }
     } catch (error) {
       setBotStatus('offline');
       toast({
-        title: "Connection Failed",
-        description: "Failed to connect bot. Please try again.",
+        title: "Generation Failed",
+        description: error instanceof Error ? error.message : "Failed to generate pair code. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -62,10 +83,62 @@ const Index = () => {
     }
   };
 
+  const pollConnectionStatus = () => {
+    const interval = setInterval(async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/status`);
+        const data = await response.json();
+        
+        if (data.connected) {
+          setBotStatus('online');
+          clearInterval(interval);
+          toast({
+            title: "Bot Connected! 🚀",
+            description: "CraigeeX WhatsApp Bot is now online and ready to respond!",
+          });
+        }
+      } catch (error) {
+        console.error('Status check failed:', error);
+      }
+    }, 3000);
+
+    // Stop polling after 5 minutes
+    setTimeout(() => clearInterval(interval), 300000);
+  };
+
+  const handleToggleActiveMode = async () => {
+    if (botStatus !== 'online') return;
+    
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/toggle-mode`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ active: !activeMode }),
+      });
+
+      if (response.ok) {
+        setActiveMode(!activeMode);
+        toast({
+          title: activeMode ? "Bot Silenced" : "Bot Activated",
+          description: activeMode ? "Bot will not respond to messages" : "Bot is now responding to messages",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to toggle bot mode",
+        variant: "destructive"
+      });
+    }
+  };
+
   const getStatusColor = () => {
     switch (botStatus) {
       case 'online': return 'bg-green-500';
-      case 'connecting': return 'bg-yellow-500 animate-pulse';
+      case 'waiting': return 'bg-blue-500 animate-pulse';
+      case 'generating': return 'bg-yellow-500 animate-pulse';
       case 'offline': return 'bg-red-500';
     }
   };
@@ -73,7 +146,8 @@ const Index = () => {
   const getStatusText = () => {
     switch (botStatus) {
       case 'online': return 'Online';
-      case 'connecting': return 'Connecting...';
+      case 'waiting': return 'Waiting for Link';
+      case 'generating': return 'Generating Code...';
       case 'offline': return 'Offline';
     }
   };
@@ -116,7 +190,7 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Pair Code Panel */}
+          {/* Phone Number & Pair Code Panel */}
           <Card className="md:col-span-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader>
               <div className="flex items-center space-x-2">
@@ -124,35 +198,68 @@ const Index = () => {
                 <CardTitle>Connect WhatsApp Bot</CardTitle>
               </div>
               <CardDescription>
-                Enter the pair code from your WhatsApp to activate CraigeeX Bot
+                Enter your WhatsApp number to generate a pair code, then link your account
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex space-x-2">
-                <Input
-                  placeholder="Enter WhatsApp Pair Code"
-                  value={pairCode}
-                  onChange={(e) => setPairCode(e.target.value)}
-                  disabled={isConnecting || botStatus === 'online'}
-                  className="flex-1"
-                />
-                <Button 
-                  onClick={handlePairCodeSubmit}
-                  disabled={isConnecting || botStatus === 'online'}
-                  className="px-6"
-                >
-                  {isConnecting ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                      <span>Connecting...</span>
+              {!showPairCode ? (
+                <div className="space-y-4">
+                  <div className="flex space-x-2">
+                    <div className="relative flex-1">
+                      <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Enter WhatsApp Number (e.g., +27847826044)"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        disabled={isConnecting}
+                        className="pl-10"
+                      />
                     </div>
-                  ) : botStatus === 'online' ? (
-                    'Connected'
-                  ) : (
-                    'Connect'
+                    <Button 
+                      onClick={handleGeneratePairCode}
+                      disabled={isConnecting}
+                      className="px-6"
+                    >
+                      {isConnecting ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                          <span>Generating...</span>
+                        </div>
+                      ) : (
+                        'Generate Code'
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 text-center">
+                    <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-300 mb-2">
+                      Your Pair Code
+                    </h3>
+                    <div className="text-3xl font-mono font-bold text-blue-600 dark:text-blue-400 mb-4 select-all">
+                      {pairCode}
+                    </div>
+                    <div className="text-sm text-blue-600 dark:text-blue-400 space-y-1">
+                      <p>1. Open WhatsApp on your phone</p>
+                      <p>2. Go to Linked Devices → Link a Device</p>
+                      <p>3. Select "Link with phone number instead"</p>
+                      <p>4. Enter the code above</p>
+                    </div>
+                  </div>
+                  
+                  {botStatus === 'waiting' && (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-yellow-600 border-t-transparent"></div>
+                        <span className="text-sm text-yellow-700 dark:text-yellow-300">
+                          Waiting for you to link your WhatsApp account...
+                        </span>
+                      </div>
+                    </div>
                   )}
-                </Button>
-              </div>
+                </div>
+              )}
               
               {botStatus === 'online' && (
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
@@ -185,7 +292,7 @@ const Index = () => {
                 </div>
                 <Switch
                   checked={activeMode}
-                  onCheckedChange={setActiveMode}
+                  onCheckedChange={handleToggleActiveMode}
                   disabled={botStatus !== 'online'}
                 />
               </div>
@@ -280,7 +387,7 @@ const Index = () => {
       <footer className="border-t bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm mt-12">
         <div className="container mx-auto px-4 py-6">
           <div className="text-center text-sm text-gray-600 dark:text-gray-400">
-            <p>CraigeeX WhatsApp Bot Dashboard • Built with ❤️ using Next.js & Railway</p>
+            <p>CraigeeX WhatsApp Bot Dashboard • Built with ❤️ using React & Railway</p>
             <p className="mt-1">Backend: Railway • Frontend: Vercel • AI: OpenAI GPT</p>
           </div>
         </div>
